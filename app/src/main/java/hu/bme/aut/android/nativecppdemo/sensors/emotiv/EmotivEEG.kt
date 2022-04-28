@@ -272,7 +272,7 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
     }*/
 
     private fun sendStatus() {
-        // TODO
+        // TODO: Contact Framework team
     }
 
     companion object {
