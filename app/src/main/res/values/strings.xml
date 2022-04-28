@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">NativeCppDemo</string>
+    <string name="connect">Connect</string>
+    <string name="notConnected">You are not connected to a Zephyr HxM</string>
+    <string name="btNotEnabled">Bluetooth not enabled.</string>
+    <string name="connecting">connecting…</string>
+    <string name="connectedTo">connected: </string>
+    <string name="initializing">initializing</string>
+    <string name="nonePaired">No Zephyr HxM devices have been paired</string>
+    <string name="noBluetooth">Bluetooth Not Available</string>
+</resources>
