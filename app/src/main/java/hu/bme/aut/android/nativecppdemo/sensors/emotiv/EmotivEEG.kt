@@ -1,22 +1,12 @@
 package hu.bme.aut.android.nativecppdemo.sensors.emotiv
 
-import android.Manifest.permission
-import android.app.Activity
-import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.hardware.SensorEvent
-import android.hardware.SensorPrivacyManager.Sensors
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.provider.Contacts
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
-import androidx.core.content.ContextCompat
 import com.emotiv.SensorStatus
 import com.emotiv.bluetooth.EmotivBluetooth
 import com.emotiv.sdk.EdkErrorCode.EDK_OK
@@ -52,16 +42,12 @@ import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricGetInterestScore
 import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricGetRelaxationScore
 import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricGetStressScore
 import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricIsActive
-import hu.bme.aut.adapted.commonlib.util.GsonHelper.gson
-import hu.bme.aut.adapted.framework.model.event.sensors.emotiv.PerformanceMetricUpdatedGameEvent
-import hu.bme.aut.adapted.framework.service.event.FrameworkEvent
-import hu.bme.aut.adapted.framework.util.RequestPermissionActivity
-import hu.bme.aut.adapted.framework.util.ResultActivity
-import hu.bme.aut.adapted.framework.util.ResultActivity.EXTRA_ACTION
 import java.util.*
 import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricGetFocusScore as IS_PerformanceMetricGetFocusScore1
 
 class EmotivEEG(private val context: Context) : IEmotivEEG {
+    val backgroundHandler: Handler = Handler(Looper.getMainLooper())
+
     private val handler: Handler = Handler(Looper.getMainLooper())
     private val pmNames: Map<Int, String> = Collections.unmodifiableMap(createPmNames())
     private val pmGetters: Map<Int, PerformanceMetricGetter> = Collections.unmodifiableMap(createPmGetters())
@@ -132,7 +118,7 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
             EmotivBluetooth._emobluetooth = EmotivBluetooth(context)
         }
         connectStartTime = SystemClock.uptimeMillis()
-        backgroundHandler!!.post { connectDevice() }
+        backgroundHandler.post { connectDevice() }
     }
 
     private fun connectDevice() {
@@ -144,7 +130,7 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
             !EmotivBluetooth._emobluetooth!!.EmoConnectDevice(0, deviceCount - 1)
         ) {
             if (SystemClock.uptimeMillis() - connectStartTime < CONNECT_TIMEOUT) {
-                backgroundHandler!!.postDelayed({ connectDevice() }, CONNECT_PERIOD)
+                backgroundHandler.postDelayed({ connectDevice() }, CONNECT_PERIOD)
             } else {
                 Log.e(TAG, "device connect failed")
                 handler.post { disconnect() }
@@ -210,17 +196,18 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
                 badSignal = true
             }
         }
-        val event = PerformanceMetricUpdatedGameEvent(gson.toJson(namedMetrics))
-        bus.post(FrameworkEvent(event, timestamp, false))
+        // TODO: Commented by Bognar Gabor. Don't know about how to properly replace eventbus so I commented it out
+        //val event = PerformanceMetricUpdatedGameEvent(gson.toJson(namedMetrics))
+        //bus.post(FrameworkEvent(event, timestamp, false))
 
         /*PerformanceMetricUpdatedSvmEvent svmEvent = new PerformanceMetricUpdatedSvmEvent(namedMetrics);
         bus.post(new FrameworkEvent(svmEvent, timestamp, true));*/
-        val prevStatus: Status = status
+        val prevStatus = status
         status = if (badSignal) SensorStatus.BAD_SIGNAL else SensorStatus.ONLINE
         if (status !== prevStatus) {
             sendStatus()
         }
-        backgroundHandler!!.postDelayed({ handleEvents() }, POLL_PERIOD)
+        backgroundHandler.postDelayed({ handleEvents() }, POLL_PERIOD)
     }
 
     private fun updatePerformanceMetric(key: Int, timestamp: Long) {
@@ -229,26 +216,16 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
             val newScore = pmGetters[key]!!.getScore(pEmoState)
             performanceMetrics[key] = newScore
             pmUpdateTimes[key] = timestamp
-
-            /*
-            if (oldScore == null || oldScore != newScore) {
-                PerformanceMetricUpdatedGameEvent event =
-                        new PerformanceMetricUpdatedGameEvent(pmNames.get(key), newScore);
-                bus.post(new FrameworkEvent(event, timestamp, true));
-
-                Log.d(TAG, event.getMetric() + ": " + event.getScore());
-            }
-            */
         }
     }
 
     override fun disconnect() {
-        if (status == Contacts.PresenceColumns.OFFLINE) {
+        if (status == SensorStatus.OFFLINE) {
             return
         }
-        status = Contacts.PresenceColumns.OFFLINE
+        status = SensorStatus.OFFLINE
         sendStatus()
-        backgroundHandler!!.removeCallbacksAndMessages(null)
+        backgroundHandler.removeCallbacksAndMessages(null)
         if (deviceConnected) {
             EmotivBluetooth._emobluetooth!!.DisconnectHeadset()
             deviceConnected = false
@@ -265,9 +242,11 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
             IEE_EngineDisconnect()
             engineConnected = false
         }
+        // TODO: Commented by Bognar Gabor. Don't know about how to properly replace eventbus so I commented it out
         //bus.unregister(this)
     }
 
+    // TODO: Commented by Bognar Gabor. Don't know about permission checks of the framework globally
     /*@Subscribe(threadMode = MAIN)
     fun onRequestPermissionEvent(event: RequestPermissionEvent) {
         if (event.getRequestCode() == PERMISSION_REQUEST_CODE) {
