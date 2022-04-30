@@ -6,10 +6,16 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.emotiv.sdk.edkJavaJNI
 import hu.bme.aut.android.nativecppdemo.databinding.ActivityMainBinding
+import hu.bme.aut.android.nativecppdemo.sensors.emotiv.EmotivEEG
 
 class MainActivity : AppCompatActivity() {
-
+    private lateinit var emotivEEG: EmotivEEG
     private lateinit var binding: ActivityMainBinding
+    var emotivData: String = ""
+        set(value) {
+            field = value
+            binding.sampleText.text = field
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,6 +30,8 @@ class MainActivity : AppCompatActivity() {
             binding.mainbutton.text = "BT_CONNECTED"
             checkBluetooth()
         }
+
+        emotivEEG = EmotivEEG(this)
     }
 
     fun checkBluetooth() {
@@ -34,19 +42,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun connect() {
-
-        //TODO("Not yet implemented")
+        emotivEEG.connect()
     }
-
-    /**
-     * A native method that is implemented by the 'nativecppdemo' native library,
-     * which is packaged with this application.
-     */
-    external fun stringFromJNI(): String
-    external fun otherMethod(): String
 
     companion object {
         const val BT_CONNECTED = "Connected"
+        var emotivData: String = ""
         // Used to load the 'nativecppdemo' library on application startup.
         init {
             System.loadLibrary("nativecppdemo")

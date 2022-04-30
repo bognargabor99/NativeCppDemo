@@ -42,16 +42,34 @@ import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricGetInterestScore
 import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricGetRelaxationScore
 import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricGetStressScore
 import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricIsActive
+import hu.bme.aut.android.nativecppdemo.MainActivity
 import java.util.*
 import com.emotiv.sdk.edkJavaJNI.IS_PerformanceMetricGetFocusScore as IS_PerformanceMetricGetFocusScore1
 
-class EmotivEEG(private val context: Context) : IEmotivEEG {
-    val backgroundHandler: Handler = Handler(Looper.getMainLooper())
+class EmotivEEG(private val activity: MainActivity) : IEmotivEEG {
+    private val backgroundHandler: Handler = Handler(Looper.getMainLooper())
 
     private val handler: Handler = Handler(Looper.getMainLooper())
+
+    /**
+     * Performance metric names: e.g. relaxation, stress, engagement etc.
+     */
     private val pmNames: Map<Int, String> = Collections.unmodifiableMap(createPmNames())
+
+    /**
+     * Performance metric getters from edkJavaJNI.kt (functions starting with 'IS_')
+     * These functions are used for retrieving data from Emotiv Insight
+     */
     private val pmGetters: Map<Int, PerformanceMetricGetter> = Collections.unmodifiableMap(createPmGetters())
+
+    /**
+     * Performance metric values
+     */
     private val performanceMetrics: MutableMap<Int, Float>
+
+    /**
+     * Timestamps for last known metric values
+     */
     private val pmUpdateTimes: MutableMap<Int, Long>
 
     @Volatile
@@ -64,7 +82,17 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
 
     @Volatile
     private var deviceConnected = false
+
+    /**
+     * Which channels provide alpha, beta, gamma, delta... waves
+     * DON'T TOUCH THIS
+     */
     var channelList = intArrayOf(IED_AF3, IED_AF4, IED_T7, IED_T8, IED_Pz)
+
+    /**
+     * Values alpha, beta, gamma, delta... waves
+     * DON'T TOUCH THIS
+     */
     var bands = arrayOf(
         doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0),
         doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0),
@@ -78,10 +106,10 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
     }
 
     private fun checkBluetooth(): Boolean {
-        val bluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
+        val bluetoothAdapter = (activity.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
         val bluetoothEnabled = bluetoothAdapter != null && bluetoothAdapter.isEnabled
         if (!bluetoothEnabled) {
-            Toast.makeText(context, "Bluetooth not enabled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "Bluetooth not enabled", Toast.LENGTH_SHORT).show()
         }
         return bluetoothEnabled
     }
@@ -92,7 +120,6 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
         }
         status = SensorStatus.CONNECTING
         sendStatus()
-        //bus.register(this)
         if (checkBluetooth()) {
             connectEngine()
         }
@@ -115,7 +142,7 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
         pEvent = IEE_EmoEngineEventCreate()
         pEmoState = IEE_EmoStateCreate()
         if (EmotivBluetooth._emobluetooth == null) {
-            EmotivBluetooth._emobluetooth = EmotivBluetooth(context)
+            EmotivBluetooth._emobluetooth = EmotivBluetooth(activity)
         }
         connectStartTime = SystemClock.uptimeMillis()
         backgroundHandler.post { connectDevice() }
@@ -145,10 +172,12 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
     }
 
     private fun handleEvents() {
-        if (status !== SensorStatus.ONLINE && status !== SensorStatus.BAD_SIGNAL) {
-            return
-        }
+        if (status !== SensorStatus.ONLINE && status !== SensorStatus.BAD_SIGNAL) return
+
         val timestamp = System.currentTimeMillis()
+        /**
+         * Setting values of the waves (Whole while loop!!!)
+         */
         while (IEE_EngineGetNextEvent(pEvent) == EDK_OK) {
             val type: Int = IEE_EmoEngineEventGetType(pEvent)
             IEE_EmoEngineEventGetUserId(pEvent, userID)
@@ -156,8 +185,7 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
             var low_beta: Double
             var high_beta: Double
             var gamma: Double
-            var theta: Double
-            theta = 0.0
+            val theta: Double = 0.0
             gamma = theta
             high_beta = gamma
             low_beta = high_beta
@@ -188,25 +216,38 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
             }
         }
         var badSignal = false
+
+        /**
+         * Map for ('Metric name' to 'Metric value')
+         */
         val namedMetrics: MutableMap<String?, Float?> = HashMap()
+
+        /**
+         * Helper string for sending data to [MainActivity]
+         */
+        var randomString = ""
         for (key in pmGetters.keys) {
             namedMetrics[pmNames[key]] = performanceMetrics[key]
+            randomString += "${pmNames[key]} = ${performanceMetrics[key]}\n"
             val updateTime = if (pmUpdateTimes.containsKey(key)) pmUpdateTimes[key]!! else 0
             if (!badSignal && timestamp - updateTime > 0) {
                 badSignal = true
             }
         }
-        // TODO: Commented by Bognar Gabor. Don't know about how to properly replace eventbus so I commented it out
-        //val event = PerformanceMetricUpdatedGameEvent(gson.toJson(namedMetrics))
-        //bus.post(FrameworkEvent(event, timestamp, false))
+        /**
+         * Setting data in MainActivity
+         */
+        activity.emotivData = randomString
 
-        /*PerformanceMetricUpdatedSvmEvent svmEvent = new PerformanceMetricUpdatedSvmEvent(namedMetrics);
-        bus.post(new FrameworkEvent(svmEvent, timestamp, true));*/
         val prevStatus = status
         status = if (badSignal) SensorStatus.BAD_SIGNAL else SensorStatus.ONLINE
         if (status !== prevStatus) {
             sendStatus()
         }
+
+        /**
+         * Polling Emotiv EEG periodically
+         */
         backgroundHandler.postDelayed({ handleEvents() }, POLL_PERIOD)
     }
 
@@ -242,34 +283,7 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
             IEE_EngineDisconnect()
             engineConnected = false
         }
-        // TODO: Commented by Bognar Gabor. Don't know about how to properly replace eventbus so I commented it out
-        //bus.unregister(this)
     }
-
-    // TODO: Commented by Bognar Gabor. Don't know about permission checks of the framework globally
-    /*@Subscribe(threadMode = MAIN)
-    fun onRequestPermissionEvent(event: RequestPermissionEvent) {
-        if (event.getRequestCode() == PERMISSION_REQUEST_CODE) {
-            if (event.hasGranted(permission.ACCESS_FINE_LOCATION)) {
-                if (checkBluetooth()) {
-                    connectEngine()
-                }
-            } else {
-                disconnect()
-            }
-        }
-    }
-
-    @Subscribe(threadMode = MAIN)
-    fun onActivityResultEvent(event: ActivityResultEvent) {
-        if (event.getRequestCode() == BLUETOOTH_REQUEST_CODE) {
-            if (event.getResultCode() == Activity.RESULT_OK) {
-                connectEngine()
-            } else {
-                disconnect()
-            }
-        }
-    }*/
 
     private fun sendStatus() {
         // TODO: Contact Framework team
@@ -283,6 +297,10 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
         private const val CONNECT_TIMEOUT = 10000L
         private const val CONNECT_PERIOD = 10L
         private const val POLL_PERIOD = 1000L
+
+        /**
+         * Stores performance metric names into a Map
+         */
         private fun createPmNames(): Map<Int, String> {
             val pmNames: MutableMap<Int, String> = HashMap()
             pmNames[PM_EXCITEMENT] = "excitement"
@@ -294,6 +312,9 @@ class EmotivEEG(private val context: Context) : IEmotivEEG {
             return pmNames
         }
 
+        /**
+         * Creates performance metric getters
+         */
         private fun createPmGetters(): Map<Int, PerformanceMetricGetter> {
             val pmGetters: MutableMap<Int, PerformanceMetricGetter> = HashMap()
             pmGetters[PM_EXCITEMENT] = object : PerformanceMetricGetter {

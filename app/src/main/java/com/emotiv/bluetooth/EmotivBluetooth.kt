@@ -13,6 +13,11 @@ import android.widget.Toast
 import java.math.BigInteger
 import java.util.*
 
+
+/**
+ * Don't touch this.
+ * This is a helper class migrated from FrameworkV2
+ */
 @Suppress("PrivatePropertyName", "KotlinJniMissingFunction", "MissingPermission",
     "LocalVariableName", "FunctionName"
 )
@@ -22,18 +27,15 @@ class EmotivBluetooth(context: Context) {
 
     // --Commented out by Inspection (5/16/16, 4:41 PM):private final UUID DEVICE_BATERY_UUID = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb");
     private val Serial_Characteristic_UUID = UUID.fromString("00002a25-0000-1000-8000-00805f9b34fb")
-    private val Firmware_Characteristic_UUID =
-        UUID.fromString("00002a26-0000-1000-8000-00805f9b34fb")
-    private val Setting_Characteristic_UUID =
-        UUID.fromString("81072F44-9F3D-11E3-A9DC-0002A5D5C51B")
+    private val Firmware_Characteristic_UUID = UUID.fromString("00002a26-0000-1000-8000-00805f9b34fb")
+    private val Setting_Characteristic_UUID = UUID.fromString("81072F44-9F3D-11E3-A9DC-0002A5D5C51B")
 
     // --Commented out by Inspection (5/16/16, 4:41 PM):private final UUID Manufac_Characteristic_UUID = UUID.fromString("00002a29-0000-1000-8000-00805f9b34fb");
     private val DATA_SERVICE_UUID = UUID.fromString("81072F40-9F3D-11E3-A9DC-0002A5D5C51B")
     private val EEG_Characteristic_UUID = UUID.fromString("81072F41-9F3D-11E3-A9DC-0002A5D5C51B")
     private val MEMS_Characteristic_UUID = UUID.fromString("81072F42-9F3D-11E3-A9DC-0002A5D5C51B")
     private val Config_Characteristic_UUID = UUID.fromString("81072F43-9F3D-11E3-A9DC-0002A5D5C51B")
-    private val CLIENT_CHARACTERISTIC_CONFIG =
-        UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+    private val CLIENT_CHARACTERISTIC_CONFIG = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
     // --Commented out by Inspection (5/16/16, 4:41 PM):private static final long SCAN_PERIOD = 1000;
     private val STATUS_CONNECTED = 1
@@ -46,8 +48,7 @@ class EmotivBluetooth(context: Context) {
     private val mHandler: Handler = Handler(Looper.getMainLooper())
     private val tHandler: Handler = Handler(Looper.getMainLooper())
     private val handler: Handler = Handler(Looper.getMainLooper())
-    private var _TypeHeadset // 0 for Insight ; 1 for EPOC
-            = 0
+    private var _TypeHeadset = 0 // 0 for Insight ; 1 for EPOC
     private var bluetoothGatt: BluetoothGatt? = null
     private val list_device_epoc: MutableList<BluetoothDevice> = ArrayList()
     private val list_device_insight: MutableList<BluetoothDevice> = ArrayList()
@@ -92,7 +93,6 @@ class EmotivBluetooth(context: Context) {
     }
     private val thread_retrive: Runnable = object : Runnable {
         override fun run() {
-            // TODO Auto-generated method stub
             try {
                 retrieveConnect()
                 mHandler.postDelayed(this, 500)
@@ -108,7 +108,6 @@ class EmotivBluetooth(context: Context) {
      */
     private val thread_checknortifi: Runnable = object : Runnable {
         override fun run() {
-            // TODO Auto-generated method stub
             if (haveData) {
                 if (testnortifi != CheckNortifiBLE) {
                     testnortifi = CheckNortifiBLE
