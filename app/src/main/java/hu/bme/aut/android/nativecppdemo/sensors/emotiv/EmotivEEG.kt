@@ -172,6 +172,8 @@ class EmotivEEG(private val activity: MainActivity) : IEmotivEEG {
     }
 
     private fun handleEvents() {
+        Log.d("EMOTIV__EVENT", IEE_EngineGetNextEvent(pEvent).toString())
+        Log.d("EMOTIV__STATUS", status.toString())
         if (status !== SensorStatus.ONLINE && status !== SensorStatus.BAD_SIGNAL) return
 
         val timestamp = System.currentTimeMillis()

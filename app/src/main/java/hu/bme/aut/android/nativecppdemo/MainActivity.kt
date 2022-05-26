@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import com.emotiv.bluetooth.EmotivBluetooth
 import com.emotiv.sdk.edkJavaJNI
 import hu.bme.aut.android.nativecppdemo.databinding.ActivityMainBinding
 import hu.bme.aut.android.nativecppdemo.sensors.emotiv.EmotivEEG
@@ -36,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     fun checkBluetooth() {
         val bluetoothAdapter = (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
-        binding.sampleText.text = edkJavaJNI.CustomerSecurity_emotiv_func(1.0).toString()
+        //binding.sampleText.text = edkJavaJNI.CustomerSecurity_emotiv_func(1.0).toString()
         connect()
 
     }

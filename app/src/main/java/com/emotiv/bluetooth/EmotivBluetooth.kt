@@ -43,7 +43,7 @@ class EmotivBluetooth(context: Context) {
     private val mContext: Context
     private var mBluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothManager: BluetoothManager? = null
-    private var scan: ScanCallback? = null
+    public  var scan: ScanCallback? = null
     private var mLEScanner: BluetoothLeScanner? = null
     private val mHandler: Handler = Handler(Looper.getMainLooper())
     private val tHandler: Handler = Handler(Looper.getMainLooper())
@@ -329,6 +329,7 @@ class EmotivBluetooth(context: Context) {
                 val device = devicelist[i]
                 if (device.name.contains("Insight")) {
                     if (!list_device_insight.contains(device)) {
+                        Log.d("AddDevice", device.name)
                         list_device_insight.add(device)
                     }
                     signal_insight[device] = 0
@@ -444,6 +445,7 @@ class EmotivBluetooth(context: Context) {
                                 //CounterScanInsight++;
                                 //	Log.e("EmoBluetooth", "Insight device");
                                 if (!list_device_insight.contains(device)) {
+                                    Log.d("AddDevice", device.name)
                                     list_device_insight.add(device)
                                 }
                                 signal_insight[device] = result.rssi
